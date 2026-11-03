@@ -70,6 +70,8 @@ public:
     node_canopen_402_driver_->register_rpdo_cb(rpdo_cb);
   }
 
+  bool heartbeat_lost() { return node_canopen_402_driver_->heartbeat_lost(); }
+
   double get_effort(uint8_t channel = 0) { return node_canopen_402_driver_->get_effort(channel); }
 
   double get_speed(uint8_t channel = 0) { return node_canopen_402_driver_->get_speed(channel); }

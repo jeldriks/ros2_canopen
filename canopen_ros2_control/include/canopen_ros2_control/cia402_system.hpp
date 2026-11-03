@@ -139,6 +139,11 @@ private:
     uint id, uint channel, const std::shared_ptr<ros2_canopen::Cia402Driver> & driver);
 
   void initDeviceContainer();
+
+  // Comma-separated ids of nodes whose heartbeat timed out, empty if none.
+  std::string nodes_without_heartbeat(
+    const std::map<uint16_t, std::shared_ptr<ros2_canopen::CanopenDriverInterface>> & drivers);
+  std::string last_refused_nodes_;
 };
 
 }  // namespace canopen_ros2_control
