@@ -23,6 +23,7 @@
 //----------------------------------------------------------------------
 
 #include "canopen_ros2_control/cia402_system.hpp"
+#include <hardware_interface/lexical_casts.hpp>
 #include <hardware_interface/types/hardware_interface_type_values.hpp>
 
 namespace
@@ -43,6 +44,10 @@ hardware_interface::CallbackReturn Cia402System::on_init(
   {
     return ret_val;
   }
+
+  const auto param = info_.hardware_parameters.find("deactivate_on_heartbeat_timeout");
+  deactivate_on_heartbeat_timeout_ =
+    param != info_.hardware_parameters.end() && hardware_interface::parse_bool(param->second);
 
   return CallbackReturn::SUCCESS;
 }
@@ -251,7 +256,9 @@ hardware_interface::CallbackReturn Cia402System::on_activate(
   const rclcpp_lifecycle::State & previous_state)
 {
   // Refuse while a device is gone, so activation can simply be retried.
-  const auto lost = nodes_without_heartbeat(device_container_->get_registered_drivers());
+  const auto lost = deactivate_on_heartbeat_timeout_
+                      ? nodes_without_heartbeat(device_container_->get_registered_drivers())
+                      : std::string();
   if (!lost.empty())
   {
     if (lost != last_refused_nodes_)
@@ -306,7 +313,8 @@ hardware_interface::return_type Cia402System::write(
 
   // A device whose heartbeat timed out cannot be commanded. DEACTIVATE makes the
   // controller_manager stop the controllers using this system and move it to inactive.
-  const auto lost = nodes_without_heartbeat(drivers);
+  const auto lost =
+    deactivate_on_heartbeat_timeout_ ? nodes_without_heartbeat(drivers) : std::string();
   if (!lost.empty())
   {
     RCLCPP_ERROR(kLogger, "No heartbeat from node(s) [%s], deactivating.", lost.c_str());
